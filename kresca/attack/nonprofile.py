@@ -66,7 +66,7 @@ class NonProfileAttack:
         for name, area in self._result.items():
             for name_2, attack in area.items():
                 
-                expected_key = self._ths.metadatas[attack.selection_function.key_tag][0]
+                expected_key = attack.selection_function.expected_key_function(self._ths.metadatas[attack.selection_function.key_tag][0])
                 found_bytes = attack.scores.argmax(axis=0)
                 len_bytes = len(found_bytes)
                 len_guesses = len(attack.scores)
@@ -89,21 +89,22 @@ class NonProfileAttack:
                                   [n for n in range(len_bytes) if df.loc['Found Bytes'][n] != df.loc['Expected'][n]]]
 
                 df = df.style.set_table_attributes("style='display:inline'")
+                df = df.format(lambda val: f"{val:.3f}" if isinstance(val, (float)) else val)
                 df = df.set_table_attributes('style="font-size: 15px"')
                 df = df.set_caption(f"{name} {name_2}")
                 df = df.set_table_styles([{
                     'selector': 'caption',
                     'props': [('text-align', 'center')]
                 }])
-                df = df.applymap(lambda val: 'color: %s' % 'green', subset=found_list).set_precision(3)
-                df = df.applymap(lambda val: 'color: %s' % 'red', subset=unfound_list)
+                df = df.map(lambda val: 'color: %s' % 'green', subset=found_list)
+                df = df.map(lambda val: 'color: %s' % 'red', subset=unfound_list)
                 
                 display(df)
     
     def _show_result(self, attack):
         _plt.rcParams['figure.figsize']=(22, 7)
 
-        expected_key = self._ths.metadatas[attack.selection_function.key_tag][0]
+        expected_key = attack.selection_function.expected_key_function(self._ths.metadatas[attack.selection_function.key_tag][0])
         found_bytes = attack.scores.argmax(axis=0)
         len_bytes = len(found_bytes)
         len_guesses = len(attack.scores)
