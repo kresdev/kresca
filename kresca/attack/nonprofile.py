@@ -28,7 +28,7 @@ class NonProfileAttack:
                  ths,
                  selection_functions,
                  distinguisher=CPAAttack,
-                 model=HammingWeight,
+                 model=HammingWeight(),
                  discriminant=maxabs,
                  frame=None,
                  preprocesses=[],
@@ -54,7 +54,7 @@ class NonProfileAttack:
             container = _scared.Container(self._ths, self._frame, self._preprocesses)
             attack = self._distinguisher(
                 selection_function=sf,
-                model=self._model(),
+                model=self._model,
                 discriminant=self._discriminant,
                 convergence_step=self._convstep,
             )

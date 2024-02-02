@@ -18,7 +18,7 @@ class LeakageAssessment:
                  ths,
                  selection_functions,
                  distinguisher=CPAReverse,
-                 model=HammingWeight,
+                 model=HammingWeight(),
                  frame=None,
                  preprocesses=[],
                  **kwargs,
@@ -41,29 +41,37 @@ class LeakageAssessment:
             container = _scared.Container(self._ths, self._frame, self._preprocesses)
             reverse = self._distinguisher(
                 selection_function=sf,
-                model=self._model(),
+                model=self._model,
             )
             reverse.run(container)
             self._result[name] = reverse
 
     def show_result(self):
         for name, _ in self._selection_functions.items():
-            fig, ax = _plt.subplots(figsize=(15, 6))
-            ths = self._ths
-            ax.plot(self._ths.samples[:int(len(self._ths)/10)].mean(axis=0), color='lightgrey', label='Mean Traces')
+            fig = _plt.figure(figsize=(15, 8))
+            gs = fig.add_gridspec(2, hspace=0)
+            ax = gs.subplots(sharex=True)
+            fig.suptitle(f'Leakage Assessment of {name}', fontsize=18).set_position([0.5, 0.92])
 
-            ax_ = ax.twinx() 
+            if(self._frame != None):
+                ax[1].plot(self._ths.samples[:int(len(self._ths)/10), self._frame[0]:self._frame[-1]].mean(axis=0), color='lightgrey', label='Mean of Traces')
+            else:
+                ax[1].plot(self._ths.samples[:int(len(self._ths)/10)].mean(axis=0), color='lightgrey', label='Mean of Traces')
+
             for idx, res in enumerate(self._result[name].results):
-                ax_.plot(res, label=f'byte {idx}')
-                    
+                ax[0].plot(res, label=f'byte {idx}')
+
+            ax[1].set_xlabel('Sample Point', fontsize=14)
+            ax[1].set_ylabel('Magnitude', fontsize=14)
+            ax[0].set_ylabel('Scores', fontsize=14)
+
             col_size = self._result[name].results.shape[0] 
             col_size = col_size if col_size < 8 else int(col_size/2)
-            
-            ax.set_xlabel('Sample Point', fontsize=14)
-            ax.set_ylabel('Trace Magnitude', fontsize=14)
-            ax_.set_ylabel('Correlation', fontsize=14)
 
-            ax.legend(loc='upper left')
-            ax_.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=col_size)
-            ax.set_title(f'Leakage Assessment of {name}', fontsize=18)
+            ax[1].legend(loc='upper left')
+            ax[0].legend(loc='upper center', bbox_to_anchor=(0.5, -1.25), ncol=col_size)
+
             _plt.show()
+
+    def get_result(self):
+        return self._result
