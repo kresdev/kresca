@@ -66,7 +66,10 @@ class NonProfileAttack:
         for name, area in self._result.items():
             for name_2, attack in area.items():
                 
-                expected_key = attack.selection_function.expected_key_function(self._ths.metadatas[attack.selection_function.key_tag][0])
+                try:
+                    expected_key = attack.selection_function.expected_key_function(self._ths.metadatas[attack.selection_function.key_tag][0])
+                except:
+                    expected_key = attack.selection_function.expected_key_function(self._ths.metadatas['key'][0])
                 found_bytes = attack.scores.argmax(axis=0)
                 len_bytes = len(found_bytes)
                 len_guesses = len(attack.scores)
@@ -75,7 +78,7 @@ class NonProfileAttack:
                 df = _pd.DataFrame(columns=[i for i in range(len_bytes)], index=['Scores','Found Bytes','Expected', 'Rank'])
 
                 for i in range(len_bytes):
-                    rank.append(int(len_guesses-1-_np.where(_np.argsort(attack.scores[:, i]) == expected_key[i])[0]))
+                    rank.append(int(len_guesses-1-_np.where(_np.argsort(attack.scores[:, i]) == expected_key[i])[0][0]))
 
                 df.loc['Scores'] = _np.round(_np.max(attack.scores, axis=0), 3)
                 df.loc['Found Bytes'] = [hex(n) for n in found_bytes]
@@ -104,7 +107,10 @@ class NonProfileAttack:
     def _show_result(self, attack):
         _plt.rcParams['figure.figsize']=(22, 7)
 
-        expected_key = attack.selection_function.expected_key_function(self._ths.metadatas[attack.selection_function.key_tag][0])
+        try:
+            expected_key = attack.selection_function.expected_key_function(self._ths.metadatas[attack.selection_function.key_tag][0])
+        except:
+            expected_key = attack.selection_function.expected_key_function(self._ths.metadatas['key'][0])
         found_bytes = attack.scores.argmax(axis=0)
         len_bytes = len(found_bytes)
         len_guesses = len(attack.scores)
