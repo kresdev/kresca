@@ -55,8 +55,8 @@ class PatternSynchronization:
             # apply any preprocess 
             for preprocess in self._preprocesses:
                 #  if preprocess filtered output True, use filter for output
-                if(preprocess == _scared.signal_processing.butterworth and self._filtered_output == True):
-                    reference_area = preprocess(reference_preprocess)
+                if(("filter" in preprocess.__name__ ) and self._filtered_output == True):
+                    reference_area = preprocess(reference_preprocess).astype('float16')
                     reference_preprocess = reference_area.copy()
                 else:
                     reference_preprocess = preprocess(reference_preprocess)
@@ -83,9 +83,11 @@ class PatternSynchronization:
                 pattern_area = self._patterns_area[index]
                 if(t0 < pattern_area[0] or t0 > pattern_area[-1]):
                     raise Exception(f'Pattern out of area:{t0}')
-            
+
             data_output = _np.append(data_output, reference_area[t0+self._patterns_len[index][0]:t0+self._patterns_len[index][-1]])
-            
+            if(self._filtered_output == True):
+                data_output = data_output.astype('float16')
+
         return data_output
     
     def check(self, total=5, debug=True):

@@ -69,27 +69,35 @@ class NonProfileAttack:
                 try:
                     expected_key = attack.selection_function.expected_key_function(self._ths.metadatas[attack.selection_function.key_tag][0])
                 except:
-                    expected_key = attack.selection_function.expected_key_function(self._ths.metadatas['key'][0])
+                    if(attack.selection_function.expected_key_function is not None):
+                        expected_key = attack.selection_function.expected_key_function(self._ths.metadatas['key'][0])
+                    else:
+                        expected_key = None
                 found_bytes = attack.scores.argmax(axis=0)
                 len_bytes = len(found_bytes)
                 len_guesses = len(attack.scores)
                 rank = list()
-                
-                df = _pd.DataFrame(columns=[i for i in range(len_bytes)], index=['Scores','Found Bytes','Expected', 'Rank'])
 
-                for i in range(len_bytes):
-                    rank.append(int(len_guesses-1-_np.where(_np.argsort(attack.scores[:, i]) == expected_key[i])[0][0]))
+                if expected_key is not None:
+                    df = _pd.DataFrame(columns=[i for i in range(len_bytes)], index=['Scores','Found Bytes','Expected', 'Rank'])
+                    
+                    for i in range(len_bytes):
+                        rank.append(int(len_guesses-1-_np.where(_np.argsort(attack.scores[:, i]) == expected_key[i])[0][0]))
+                else:
+                    df = _pd.DataFrame(columns=[i for i in range(len_bytes)], index=['Scores','Found Bytes'])
 
                 df.loc['Scores'] = _np.round(_np.max(attack.scores, axis=0), 3)
                 df.loc['Found Bytes'] = [hex(n) for n in found_bytes]
-                df.loc['Expected'] = [hex(n) for n in expected_key]
-                df.loc['Rank'] = rank
+
+                if expected_key is not None:
+                    df.loc['Expected'] = [hex(n) for n in expected_key]
+                    df.loc['Rank'] = rank
                 
-                idx = _pd.IndexSlice
-                found_list = idx[idx['Found Bytes':'Found Bytes',
-                                    [n for n in range(len_bytes) if df.loc['Found Bytes'][n] == df.loc['Expected'][n]]]]
-                unfound_list = idx['Found Bytes':'Found Bytes', 
-                                  [n for n in range(len_bytes) if df.loc['Found Bytes'][n] != df.loc['Expected'][n]]]
+                    idx = _pd.IndexSlice
+                    found_list = idx[idx['Found Bytes':'Found Bytes',
+                                        [n for n in range(len_bytes) if df.loc['Found Bytes'][n] == df.loc['Expected'][n]]]]
+                    unfound_list = idx['Found Bytes':'Found Bytes', 
+                                      [n for n in range(len_bytes) if df.loc['Found Bytes'][n] != df.loc['Expected'][n]]]
 
                 df = df.style.set_table_attributes("style='display:inline'")
                 df = df.format(lambda val: f"{val:.3f}" if isinstance(val, (float)) else val)
@@ -99,8 +107,9 @@ class NonProfileAttack:
                     'selector': 'caption',
                     'props': [('text-align', 'center')]
                 }])
-                df = df.map(lambda val: 'color: %s' % 'green', subset=found_list)
-                df = df.map(lambda val: 'color: %s' % 'red', subset=unfound_list)
+                if expected_key is not None:
+                    df = df.map(lambda val: 'color: %s' % 'green', subset=found_list)
+                    df = df.map(lambda val: 'color: %s' % 'red', subset=unfound_list)
                 
                 display(df)
     
@@ -110,7 +119,11 @@ class NonProfileAttack:
         try:
             expected_key = attack.selection_function.expected_key_function(self._ths.metadatas[attack.selection_function.key_tag][0])
         except:
-            expected_key = attack.selection_function.expected_key_function(self._ths.metadatas['key'][0])
+            if(attack.selection_function.expected_key_function is not None):
+                expected_key = attack.selection_function.expected_key_function(self._ths.metadatas['key'][0])
+            else:
+                expected_key = None
+                
         found_bytes = attack.scores.argmax(axis=0)
         len_bytes = len(found_bytes)
         len_guesses = len(attack.scores)
@@ -134,11 +147,15 @@ class NonProfileAttack:
                 _plt.plot(attack.results[1, byte_selected, :], 'lightgrey', label='Wrong Guesses')
                 _plt.plot(attack.results[1:, byte_selected, :].T, 'lightgrey')
 
-                if(found_bytes[byte_selected] == expected_key[byte_selected]):
-                    _plt.plot(attack.results[:, byte_selected, :][expected_key[byte_selected]], 'green', label='Expected Key')
+                if expected_key is not None:
+                    if(found_bytes[byte_selected] == expected_key[byte_selected]):
+                        _plt.plot(attack.results[:, byte_selected, :][expected_key[byte_selected]], 'green', label='Expected Key')
+                    else:
+                        _plt.plot(attack.results[:, byte_selected, :][found_bytes[byte_selected]], 'red', label='Found Key')
+                        _plt.plot(attack.results[:, byte_selected, :][expected_key[byte_selected]], 'blue', label='Expected Key')
                 else:
-                    _plt.plot(attack.results[:, byte_selected, :][found_bytes[byte_selected]], 'red', label='Found Key')
-                    _plt.plot(attack.results[:, byte_selected, :][expected_key[byte_selected]], 'blue', label='Expected Key')
+                    _plt.plot(attack.results[:, byte_selected, :][found_bytes[byte_selected]], 'blue', label='Found Key')
+                    
                 _plt.legend(loc=3, fontsize=12);
 
                 # Plotting the convergence scores for byte 15
@@ -152,11 +169,15 @@ class NonProfileAttack:
                     _plt.plot(x_step, attack.convergence_traces[1, byte_selected,:], 'lightgrey', label='Wrong Guesses')
                     _plt.plot(x_step, attack.convergence_traces[1:, byte_selected,:].T, 'lightgrey')
 
-                    if(found_bytes[byte_selected] == expected_key[byte_selected]):
-                        _plt.plot(x_step, attack.convergence_traces[:, byte_selected,:][expected_key[byte_selected]], 'green', label='Expected Key')
+                    if expected_key is not None:
+                        
+                        if(found_bytes[byte_selected] == expected_key[byte_selected]):
+                            _plt.plot(x_step, attack.convergence_traces[:, byte_selected,:][expected_key[byte_selected]], 'green', label='Expected Key')
+                        else:
+                            _plt.plot(x_step, attack.convergence_traces[:, byte_selected,:][found_bytes[byte_selected]], 'red', label='Found Key')
+                            _plt.plot(x_step, attack.convergence_traces[:, byte_selected,:][expected_key[byte_selected]], 'blue', label='Expected Key')
                     else:
-                        _plt.plot(x_step, attack.convergence_traces[:, byte_selected,:][found_bytes[byte_selected]], 'red', label='Found Key')
-                        _plt.plot(x_step, attack.convergence_traces[:, byte_selected,:][expected_key[byte_selected]], 'blue', label='Expected Key')
+                        _plt.plot(x_step, attack.convergence_traces[:, byte_selected,:][found_bytes[byte_selected]], 'blue', label='Found Key')
 
                 _plt.legend(loc=3, fontsize=12);
                 _plt.show()
